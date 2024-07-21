@@ -23,6 +23,15 @@ app.post('/languages', (req, res) => {
   res.send("Languages received");
 });
 
+app.post('/proficiencies', (req, res) => {
+  console.log('Received a POST request on /proficiencies');
+  const { selectedLanguage, currentProficiency, targetFluency} = req.body;
+  console.log('selected Language: ', selectedLanguage);
+  console.log('Current Proficiency: ', currentProficiency);
+  console.log('Target Fluency: ', targetFluency);
+  res.send("Proficiencies received");
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
