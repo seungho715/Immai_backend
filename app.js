@@ -3,6 +3,7 @@ const http = require('http');
 const https = require('https');
 const express = require('express');
 const cors = require('cors');
+const { timeStamp } = require('console');
 const app = express();
 const port = 3001;
 const ssl_port = 3443;
@@ -26,6 +27,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+let proficiencies = {};
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
@@ -44,7 +47,35 @@ app.post('/proficiencies', (req, res) => {
   console.log('selected Language: ', selectedLanguage);
   console.log('Current Proficiency: ', currentProficiency);
   console.log('Target Fluency: ', targetFluency);
-  res.send("Proficiencies received");
+
+  // Store Proficiency data in the database
+  proficiencies[selectedLanguage]={
+    currentProficiency,
+    targetFluency
+  };
+
+  res.send("Proficiencies received and stored");
+})
+
+app.get('/proficiencies/:languages', (req, res) => {
+  const language = req.params.language;
+  const proficiency = proficiencies[language];
+
+  if(proficiency){
+    res.json(proficiency);
+  }
+  else{
+    res.status(404).send("Proficiency not found for the specified language");
+  }
+})
+
+// End Point to send data to frontend
+app.get('/get-data', (req, res) => {
+  const data = {
+    message: "Hello World from Backend",
+    timeStamp: new Date(),
+  };
+  res.json(data);
 })
 
 // Starting both http & https servers
