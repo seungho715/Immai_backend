@@ -7,11 +7,23 @@ const { timeStamp } = require('console');
 const app = express();
 const port = 3001;
 const ssl_port = 3443;
+const {pool} = require('pg');
 
 // Certificate
 const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
 const certificate = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/cert.pem', 'utf8');
 const ca = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/chain.pem', 'utf8');
+
+const pool = new Pool({
+  user: 'postgres',
+  host: 'yellowtail.tplinkdns.com',
+  database: 'immai',
+  password: 'jerfy_truenas_db', //Some kind of password
+  port: '9543',
+  ssl: {
+    rejectUnauthorized: false
+  }
+})
 
 const credentials = {
 	key: privateKey,
@@ -47,13 +59,6 @@ app.post('/proficiencies', (req, res) => {
   console.log('selected Language: ', selectedLanguage);
   console.log('Current Proficiency: ', currentProficiency);
   console.log('Target Fluency: ', targetFluency);
-
-  // Store Proficiency data in the database
-  proficiencies[selectedLanguage]={
-    currentProficiency,
-    targetFluency
-  };
-
   res.send("Proficiencies received and stored");
 })
 
@@ -70,13 +75,33 @@ app.get('/proficiencies/:languages', (req, res) => {
 })
 
 // End Point to send data to frontend
-app.get('/get-data', (req, res) => {
-  const data = {
-    message: "Hello World from Backend",
-    timeStamp: new Date(),
-  };
-  res.json(data);
+app.get('/api/:schema/:table', async (req, res) => {
+  const {schema, table} = req.params;
+  try{
+    const query = 'SELECT * FROM ${schema}.${table}';
+    const result = await pool.query(query)
+  }catch(err){
+    res.status(500).send('Error retrieving data from the database');
+  }
+});
+
+// Mid point to send data to database
+app.post('/api/:schema/:table', async (req, res) => {
+  const {schema, table} = req.params;
+  const {column1, column2, column3} = req.body;
+
+  try{
+    const query = 'INSERT INTO ${schema}.${table} (column1, column2, column 3) VALUES {$1, $2, $3) RETURNING *';
+    const values = [column1, column2, column3];
+    const result = await pool.query(query, values);
+    res.join(result.rows[0]);
+  }catch(err){
+    console.error(err);
+    res.status(500).send('Error inserting data into the database');
+  }
 })
+
+
 
 // Starting both http & https servers
 const httpServer = http.createServer(app);
@@ -90,6 +115,9 @@ httpsServer.listen(ssl_port, () => {
 	console.log(`HTTPS Server running on port ${ssl_port}`);
 });
 
+process.on('exit', ()=> {
+  pool.end();
+})
 
 /* app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
