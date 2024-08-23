@@ -7,12 +7,12 @@ const { timeStamp } = require('console');
 const app = express();
 const port = 3001;
 const ssl_port = 3443;
-const {pool} = require('pg');
+const { Pool } = require('pg');
 
 // Certificate
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
-const certificate = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/cert.pem', 'utf8');
-const ca = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/chain.pem', 'utf8');
+// const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
+// const certificate = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/cert.pem', 'utf8');
+// const ca = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/chain.pem', 'utf8');
 
 const pool = new Pool({
   user: 'postgres',
@@ -20,16 +20,13 @@ const pool = new Pool({
   database: 'immai',
   password: 'jerfy_truenas_db', //Some kind of password
   port: '9543',
-  ssl: {
-    rejectUnauthorized: false
-  }
 })
 
-const credentials = {
+/* const credentials = {
 	key: privateKey,
 	cert: certificate,
 	ca: ca
-};
+}; */
 
 const corsOptions = {
   origin: /^http:\/\/localhost:\d+$/, // Allow any port on localhost
@@ -78,10 +75,10 @@ app.get('/proficiencies/:languages', (req, res) => {
 app.get('/api/:schema/:table', async (req, res) => {
   const {schema, table} = req.params;
   try{
-    const query = 'SELECT * FROM ${schema}.${table}';
+    const query = `SELECT * FROM ${schema}.${table}`;
     const result = await pool.query(query)
   }catch(err){
-    res.status(500).send('Error retrieving data from the database');
+    res.status(500).send('Error retrieving data from the database' + err);
   }
 });
 
@@ -91,7 +88,7 @@ app.post('/api/:schema/:table', async (req, res) => {
   const {column1, column2, column3} = req.body;
 
   try{
-    const query = 'INSERT INTO ${schema}.${table} (column1, column2, column 3) VALUES {$1, $2, $3) RETURNING *';
+    const query = `INSERT INTO ${schema}.${table} (column1, column2, column 3) VALUES {$1, $2, $3) RETURNING *`;
     const values = [column1, column2, column3];
     const result = await pool.query(query, values);
     res.join(result.rows[0]);
@@ -105,15 +102,15 @@ app.post('/api/:schema/:table', async (req, res) => {
 
 // Starting both http & https servers
 const httpServer = http.createServer(app);
-const httpsServer = https.createServer(credentials, app);
+//const httpsServer = https.createServer(credentials, app);
 
 httpServer.listen(port, () => {
 	console.log(`HTTP Server running on port ${port}`);
 });
 
-httpsServer.listen(ssl_port, () => {
+/* httpsServer.listen(ssl_port, () => {
 	console.log(`HTTPS Server running on port ${ssl_port}`);
-});
+}); */
 
 process.on('exit', ()=> {
   pool.end();
