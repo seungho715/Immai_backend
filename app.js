@@ -8,6 +8,12 @@ const app = express();
 const port = 3001;
 const ssl_port = 3443;
 const { Pool } = require('pg');
+const admin = require('firebase-admin');
+const serviceAccount = require('./path/to/firebase-service-account.json'); //need to change once firebase is set up
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+})
 
 // Certificate
 // const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
@@ -71,30 +77,75 @@ app.get('/proficiencies/:languages', (req, res) => {
   }
 })
 
-// End Point to send data to frontend
-app.get('/api/:schema/:table', async (req, res) => {
-  const {schema, table} = req.params;
-  try{
-    const query = `SELECT * FROM ${schema}.${table}`;
-    const result = await pool.query(query)
-  }catch(err){
-    res.status(500).send('Error retrieving data from the database' + err);
+// Getting all the user data from the user table
+app.get('/api/users', async (req, res) => {
+  try {
+    const query = `SELECT * FROM user_data.users`;  // Specify the schema and table directly
+    const result = await pool.query(query);
+    console.log(result.rows);  // Log the fetched data to the command prompt
+    res.json(result.rows);     // Send the data to the client
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error retrieving data from the database: ' + err.message);
   }
 });
 
-// Mid point to send data to database
-app.post('/api/:schema/:table', async (req, res) => {
-  const {schema, table} = req.params;
-  const {column1, column2, column3} = req.body;
 
+// Getting only the usernames
+app.get('/api/users/username', async(req, res) => {
   try{
-    const query = `INSERT INTO ${schema}.${table} (column1, column2, column 3) VALUES {$1, $2, $3) RETURNING *`;
-    const values = [column1, column2, column3];
-    const result = await pool.query(query, values);
-    res.join(result.rows[0]);
+    const query = 'SELECT username FROM user_data.users';
+    const result = await pool.query(query);
+    console.log(result.rows);
+    res.json(result.rows);
   }catch(err){
     console.error(err);
-    res.status(500).send('Error inserting data into the database');
+    res.status(500).send('Error retrieving data from the database: ' + err.message);
+  }
+})
+//Need to discuss about the firebase authentication
+
+// Inserting User Data
+app.post('/api/register', async(req, res) => {
+  const {firebaseId, firstName, lastName, username} = req.body;
+  try{
+    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) RETURNING *';
+    const values = [firebaseId, firstName, lastName, username];
+    const result = await pool.query(query, values);
+
+    res.json(result.rows[0]);
+  }catch(err){
+    console.error(err);
+    res.status(500).send('Error inserting user data into the database: ' + err.message);
+  }
+})
+
+//Endpoint to handle user login for user data
+app.post('/api/login', async(req, res) => {
+  const{username, password} = req.body;
+
+  try{
+    const user = await admin.auth().getUserByEmail(username);
+    if(user){
+      const firebaseId = user.uid;
+
+      const query = 'SELECT * FROM user_data.users WHERE id = $1';
+      const values = [firebaseId];
+      const result = await pool.query(query, values);
+
+      if(result.rows.length > 0){
+        res.json(result.rows[0]);
+      }
+      else{
+        res.status(404).send('User not found in the database');
+      }
+    }
+    else{
+      res.status(401).send('Authentication failed');
+    }
+  }catch(err){
+    console.error(err);
+    res.status(500).send('Error logging in: '+ err.message);
   }
 })
 
