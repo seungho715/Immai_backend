@@ -9,11 +9,11 @@ const port = 3001;
 const ssl_port = 3443;
 const { Pool } = require('pg');
 const admin = require('firebase-admin');
-const serviceAccount = require('./path/to/firebase-service-account.json'); //need to change once firebase is set up
+//const serviceAccount = require('./path/to/firebase-service-account.json'); //need to change once firebase is set up
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-})
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount)
+// })
 
 // Certificate
 // const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
@@ -48,21 +48,33 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
-app.post('/languages', (req, res) => {
-  console.log('Received a POST request on /languages');
-  const { learningLanguage, nativeLanguage } = req.body;
-  console.log('Learning Language: ', learningLanguage);
-  console.log('Native Language: ', nativeLanguage);
-  res.send("Languages received");
+app.post('/languages', async (req, res) => {
+  // console.log('Received a POST request on /languages');
+  // const { learningLanguage, nativeLanguage } = req.body;
+  // console.log('Learning Language: ', learningLanguage);
+  // console.log('Native Language: ', nativeLanguage);
+  // res.send("Languages received");
+
+  const { lang_id = 1} = req.body;
+
+  try {
+    const query = `SELECT * FROM language_data.languages WHERE lang_id = $1`;
+    const result = await pool.query(query, [lang_id]);
+    console.log(result.rows);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error retrieving data from the database: ' + err.message);
+  }
 });
 
 app.post('/proficiencies', (req, res) => {
-  console.log('Received a POST request on /proficiencies');
-  const { selectedLanguage, currentProficiency, targetFluency} = req.body;
-  console.log('selected Language: ', selectedLanguage);
-  console.log('Current Proficiency: ', currentProficiency);
-  console.log('Target Fluency: ', targetFluency);
-  res.send("Proficiencies received and stored");
+  // console.log('Received a POST request on /proficiencies');
+  // const { selectedLanguage, currentProficiency, targetFluency} = req.body;
+  // console.log('selected Language: ', selectedLanguage);
+  // console.log('Current Proficiency: ', currentProficiency);
+  // console.log('Target Fluency: ', targetFluency);
+  // res.send("Proficiencies received and stored");
 })
 
 app.get('/proficiencies/:languages', (req, res) => {
