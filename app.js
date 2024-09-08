@@ -161,7 +161,22 @@ app.post('/api/login', async(req, res) => {
   }
 })
 
+//Need to check how to automatically generate id and no page to enter username. 
+// Endpoint to handle user registration
+app.post('/api/register', async(req, res) => {
+  const {Id, firstName, lastName, username} = req.body;
 
+  try {
+    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) RETURNING *';
+    const values = [Id, firstName, lastName, username];
+    const result = await pool.query(query, values);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error inserting user data into the database: ' + err.message);
+  }
+});
 
 // Starting both http & https servers
 const httpServer = http.createServer(app);
