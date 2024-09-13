@@ -117,21 +117,6 @@ app.get('/api/users/username', async(req, res) => {
 })
 //Need to discuss about the firebase authentication
 
-// Inserting User Data
-app.post('/api/register', async(req, res) => {
-  const {firebaseId, firstName, lastName, username} = req.body;
-  try{
-    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) RETURNING *';
-    const values = [firebaseId, firstName, lastName, username];
-    const result = await pool.query(query, values);
-
-    res.json(result.rows[0]);
-  }catch(err){
-    console.error(err);
-    res.status(500).send('Error inserting user data into the database: ' + err.message);
-  }
-})
-
 //Endpoint to handle user login for user data
 app.post('/api/login', async(req, res) => {
   const{username, password} = req.body;
@@ -162,13 +147,21 @@ app.post('/api/login', async(req, res) => {
 })
 
 //Need to check how to automatically generate id and no page to enter username. 
+
 // Endpoint to handle user registration
-app.post('/api/register', async(req, res) => {
-  const {Id, firstName, lastName, username} = req.body;
+app.post('/api/register', async (req, res) => {
+  const { firstName, lastName, username, password, email } = req.body;
 
   try {
-    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) RETURNING *';
-    const values = [Id, firstName, lastName, username];
+    const checkUserQuery = 'SELECT * FROM user_data.users WHERE username = $1';
+    const checkUserResult = await pool.query(checkUserQuery, [username]);
+
+    if (checkUserResult.rows.length > 0) {
+      return res.status(409).json({ error: `User ${username} already exists` });
+    }
+
+    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username, password, email) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING *';
+    const values = [firstName, lastName, username, password, email];
     const result = await pool.query(query, values);
 
     res.json(result.rows[0]);
@@ -177,6 +170,7 @@ app.post('/api/register', async(req, res) => {
     res.status(500).send('Error inserting user data into the database: ' + err.message);
   }
 });
+
 
 // Starting both http & https servers
 const httpServer = http.createServer(app);
