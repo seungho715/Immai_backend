@@ -8,12 +8,12 @@ const app = express();
 const port = 3001;
 const ssl_port = 3443;
 const { Pool } = require('pg');
-//const admin = require('firebase-admin');
+const admin = require('firebase-admin');
 //const serviceAccount = require('./path/to/firebase-service-account.json'); //need to change once firebase is set up
 
-/*admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-})*/
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount)
+// })
 
 // Certificate
 var enableSSL = true;
@@ -58,21 +58,33 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
-app.post('/languages', (req, res) => {
-  console.log('Received a POST request on /languages');
-  const { learningLanguage, nativeLanguage } = req.body;
-  console.log('Learning Language: ', learningLanguage);
-  console.log('Native Language: ', nativeLanguage);
-  res.send("Languages received");
+app.post('/languages', async (req, res) => {
+  // console.log('Received a POST request on /languages');
+  // const { learningLanguage, nativeLanguage } = req.body;
+  // console.log('Learning Language: ', learningLanguage);
+  // console.log('Native Language: ', nativeLanguage);
+  // res.send("Languages received");
+
+  const { lang_id = 1} = req.body;
+
+  try {
+    const query = `SELECT * FROM language_data.languages WHERE lang_id = $1`;
+    const result = await pool.query(query, [lang_id]);
+    console.log(result.rows);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error retrieving data from the database: ' + err.message);
+  }
 });
 
 app.post('/proficiencies', (req, res) => {
-  console.log('Received a POST request on /proficiencies');
-  const { selectedLanguage, currentProficiency, targetFluency} = req.body;
-  console.log('selected Language: ', selectedLanguage);
-  console.log('Current Proficiency: ', currentProficiency);
-  console.log('Target Fluency: ', targetFluency);
-  res.send("Proficiencies received and stored");
+  // console.log('Received a POST request on /proficiencies');
+  // const { selectedLanguage, currentProficiency, targetFluency} = req.body;
+  // console.log('selected Language: ', selectedLanguage);
+  // console.log('Current Proficiency: ', currentProficiency);
+  // console.log('Target Fluency: ', targetFluency);
+  // res.send("Proficiencies received and stored");
 })
 
 app.get('/proficiencies/:languages', (req, res) => {
@@ -115,21 +127,6 @@ app.get('/api/users/username', async(req, res) => {
 })
 //Need to discuss about the firebase authentication
 
-// Inserting User Data
-app.post('/api/register', async(req, res) => {
-  const {firebaseId, firstName, lastName, username} = req.body;
-  try{
-    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) RETURNING *';
-    const values = [firebaseId, firstName, lastName, username];
-    const result = await pool.query(query, values);
-
-    res.json(result.rows[0]);
-  }catch(err){
-    console.error(err);
-    res.status(500).send('Error inserting user data into the database: ' + err.message);
-  }
-})
-
 //Endpoint to handle user login for user data
 app.post('/api/login', async(req, res) => {
   const{username, password} = req.body;
@@ -159,6 +156,30 @@ app.post('/api/login', async(req, res) => {
   }
 })
 
+//Need to check how to automatically generate id and no page to enter username. 
+
+// Endpoint to handle user registration
+app.post('/api/register', async (req, res) => {
+  const { firstName, lastName, username, password, email } = req.body;
+
+  try {
+    const checkUserQuery = 'SELECT * FROM user_data.users WHERE username = $1';
+    const checkUserResult = await pool.query(checkUserQuery, [username]);
+
+    if (checkUserResult.rows.length > 0) {
+      return res.status(409).json({ error: `User ${username} already exists` });
+    }
+
+    const query = 'INSERT INTO user_data.users (id, first_name, last_name, username, password, email) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING *';
+    const values = [firstName, lastName, username, password, email];
+    const result = await pool.query(query, values);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error inserting user data into the database: ' + err.message);
+  }
+});
 
 
 // Starting both http & https servers
