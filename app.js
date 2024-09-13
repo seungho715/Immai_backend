@@ -8,17 +8,33 @@ const app = express();
 const port = 3001;
 const ssl_port = 3443;
 const { Pool } = require('pg');
-const admin = require('firebase-admin');
-const serviceAccount = require('./path/to/firebase-service-account.json'); //need to change once firebase is set up
+//const admin = require('firebase-admin');
+//const serviceAccount = require('./path/to/firebase-service-account.json'); //need to change once firebase is set up
 
-admin.initializeApp({
+/*admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
-})
+})*/
 
 // Certificate
-// const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
-// const certificate = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/cert.pem', 'utf8');
-// const ca = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/chain.pem', 'utf8');
+var enableSSL = true;
+var credentials;
+try {
+	const privateKey = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/privkey.pem', 'utf8');
+	const certificate = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/cert.pem', 'utf8');
+	const ca = fs.readFileSync('/etc/letsencrypt/live/yellowtail.tplinkdns.com/chain.pem', 'utf8');
+	credentials = {
+		key: privateKey,
+		cert: certificate,
+		ca: ca
+	};
+} catch (err) {
+	if (err.code === 'ENOENT') {
+		console.log('SSL files not found, only running HTTP server');
+		enableSSL = false;
+	} else {
+		throw err;
+	}	
+}
 
 const pool = new Pool({
   user: 'postgres',
@@ -27,12 +43,6 @@ const pool = new Pool({
   password: 'jerfy_truenas_db', //Some kind of password
   port: '9543',
 })
-
-/* const credentials = {
-	key: privateKey,
-	cert: certificate,
-	ca: ca
-}; */
 
 const corsOptions = {
   origin: /^http:\/\/localhost:\d+$/, // Allow any port on localhost
@@ -153,15 +163,18 @@ app.post('/api/login', async(req, res) => {
 
 // Starting both http & https servers
 const httpServer = http.createServer(app);
-//const httpsServer = https.createServer(credentials, app);
 
 httpServer.listen(port, () => {
 	console.log(`HTTP Server running on port ${port}`);
 });
 
-/* httpsServer.listen(ssl_port, () => {
-	console.log(`HTTPS Server running on port ${ssl_port}`);
-}); */
+var httpsServer;
+if (enableSSL){
+	httpsServer = https.createServer(credentials, app);
+	httpsServer.listen(ssl_port, () => {
+		console.log(`HTTPS Server running on port ${ssl_port}`);
+	});
+}
 
 process.on('exit', ()=> {
   pool.end();
@@ -169,5 +182,4 @@ process.on('exit', ()=> {
 
 /* app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
-});
- */
+}); */

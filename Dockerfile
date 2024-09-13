@@ -6,21 +6,28 @@ ARG OS=bullseye-slim
 FROM ${ARCH}/node:${NODE_VERSION}-${OS} AS base
 # FROM node:16-slim
 
+RUN mkdir -p /home/node/app/node_modules
+
 # Change the working directory on the Docker image to /app
-WORKDIR /app
+WORKDIR /home/node/app
+#WORKDIR /app
 
 # Copy package.json and package-lock.json to the /app directory
-COPY ["package.json", "package-lock.json", "./"]
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install express
+RUN npm install pg
 
 # Copy the rest of project files into this image
+#COPY --chown=node:node . .
 COPY . .
 
 # Expose application port
 EXPOSE 3001 3443
 
+# USER node
+
 # Start the application
 #ENTRYPOINT ["node", "app.js"]
-ENTRYPOINT [ "sh", "-c", "node app.js > ./log.txt 2>&1" ]
+ENTRYPOINT [ "sh", "-c", "node app.js > /app/log.txt 2>&1" ]
