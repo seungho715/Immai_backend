@@ -162,24 +162,31 @@ app.post('/api/login', async(req, res) => {
 app.post('/api/register', async (req, res) => {
   const { firstName, lastName, username, password, email } = req.body;
 
+  // Log the incoming request data
+  console.log("Received data: ", { firstName, lastName, username, password, email });
+
   try {
     const checkUserQuery = 'SELECT * FROM user_data.users WHERE username = $1';
     const checkUserResult = await pool.query(checkUserQuery, [username]);
 
     if (checkUserResult.rows.length > 0) {
+      console.log("Username exists: ", username);
       return res.status(409).json({ error: `User ${username} already exists` });
     }
 
+    // Insert the new user
     const query = 'INSERT INTO user_data.users (id, first_name, last_name, username, password, email) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING *';
     const values = [firstName, lastName, username, password, email];
     const result = await pool.query(query, values);
 
+    console.log("User created successfully: ", result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("Error inserting user: ", err);
     res.status(500).send('Error inserting user data into the database: ' + err.message);
   }
 });
+
 
 
 // Starting both http & https servers
