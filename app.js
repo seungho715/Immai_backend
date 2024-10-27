@@ -125,6 +125,64 @@ app.get('/api/users/username', async(req, res) => {
     res.status(500).send('Error retrieving data from the database: ' + err.message);
   }
 })
+
+tempUsernameMiddleware = async (req, res, next) => {
+  try {
+    const query = `SELECT id FROM user_data.users WHERE username = $1`;
+    const username = req.params.username;
+    const result = await pool.query(query, [username]);
+    console.log(result.rows.at(0))
+    req.params.uid = result.rows.at(0).id;
+    return next();
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send('Error retrieving data from the database: ', + err.message);o
+  }
+}
+// This, with the username path param, should be for admins
+// There should be an endpoint with a user login middleware that automatically gets the logged in user's stuff (not just all the params at once either, could be multiple functions)
+app.get('/api/userdata/:username/states', tempUsernameMiddleware, async (req, res) => {
+  try {
+    const query = `SELECT t3.name, t2.value, t3.max_value
+                  from user_data.users t1
+                    right join user_data.user_state t2
+                      on t1.id = t2.user_id
+                    join user_data.user_state_info t3
+                      on t2.state_id = t3.id
+                  where t1.id = $1`;
+    const uid = req.params.uid;
+    const result = await pool.query(query, [uid]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error retrieving data from the database: ' + err.message);
+  }
+})
+
+app.post('/api/userdata/:username/states', tempUsernameMiddleware, async (req, res) => {
+  try {
+    const query = `
+    update user_data.user_state as us
+    set value = $1
+    from (select id from user_data.user_state_info as t where t.name = $2) as t
+    where us.user_id = $3 and us.state_id = t.id;
+    `
+    const uid = req.params.uid;
+    console.log(req.body);
+    const result = [];
+    for (let elem of req.body.body ) {
+      console.log(elem);
+      const queryResult = await pool.query(query, [elem.value, elem.name, uid]);
+      console.log(queryResult);
+      result.push(queryResult.rowCount == 1);
+    }
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error retrieving data from the database: ' + err.message);
+  }
+})
+
 //Need to discuss about the firebase authentication
 
 //Endpoint to handle user login for user data
