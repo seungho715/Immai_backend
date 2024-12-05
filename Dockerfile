@@ -1,33 +1,21 @@
-ARG ARCH=amd64
-ARG NODE_VERSION=20
-ARG OS=bullseye-slim
+FROM alpine:3
 
-#### Stage BASE ########################################################################################################
-FROM ${ARCH}/node:${NODE_VERSION}-${OS} AS base
-# FROM node:16-slim
 
-RUN mkdir -p /home/node/app/node_modules
 
-# Change the working directory on the Docker image to /app
-WORKDIR /home/node/app
-#WORKDIR /app
+WORKDIR /usr/app
 
-# Copy package.json and package-lock.json to the /app directory
+RUN apk upgrade --no-cache
+RUN apk add curl gpg nodejs npm bash
+
+RUN npm install -g yarn
+
 COPY package*.json ./
+COPY webpack.config.js ./
+COPY jsconfig.json ./
+COPY .babelrc.js ./
+COPY docker_entrypoint.sh ./
+COPY src ./src
 
-# Install dependencies
-RUN npm install express
-RUN npm install pg
+CMD ["bash", "-c", "./docker_entrypoint.sh"]
 
-# Copy the rest of project files into this image
-#COPY --chown=node:node . .
-COPY . .
-
-# Expose application port
-EXPOSE 3001 3443
-
-# USER node
-
-# Start the application
-#ENTRYPOINT ["node", "app.js"]
-ENTRYPOINT [ "sh", "-c", "node app.js > /app/log.txt 2>&1" ]
+EXPOSE 8080
