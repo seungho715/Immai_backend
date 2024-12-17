@@ -4,6 +4,7 @@ import json
 
 urlchat = "http://localhost:11434/api/chat"
 urlgen = "http://localhost:11434/api/generate"
+context_file = 'src\python\context.txt'
 
 # Use for NPC
 def llama3chat(prompt, role, context):
@@ -74,6 +75,19 @@ def exercise_gen(word, exercise):
 
 if __name__ == "__main__":
     # response = llama3chat("write a sentence in french using the word poubelle")
-    prompt = sys.argv[1]
-    response = llama3gen(prompt)
-    print(response)
+    methodToUse = sys.argv[1]
+
+    if methodToUse == "npc":
+        inputText = sys.argv[2]
+        role = sys.argv[3]
+
+        with open(context_file, 'r') as file:
+            context = file.read()
+        response = NPC_gen(inputText, role, context)
+        print(response)
+
+    elif methodToUse == "exercise":
+        word = sys.argv[2]
+        exercise = sys.argv[3]
+        response = exercise_gen(word, exercise)
+        print(response)
