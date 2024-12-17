@@ -7,7 +7,8 @@ function npcInteraction(argument){
 
             let output = '';
             pythonProcess.stdout.on('data', (data) => {
-                output+=data;
+                console.log(data.toString())
+                output+=data.toString();
             });
 
             pythonProcess.stderr.on('data', (data) => {
@@ -16,7 +17,7 @@ function npcInteraction(argument){
 
             pythonProcess.on('close', (code) => {
                 if (code===0) {
-                    resolve(parseInt(output, 10));
+                    resolve(output.toString());
                 } else {
                     reject(`Python process exited with code ${code}`);
                 }

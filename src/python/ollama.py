@@ -1,4 +1,5 @@
 import requests
+import sys
 import json
 
 urlchat = "http://localhost:11434/api/chat"
@@ -73,5 +74,6 @@ def exercise_gen(word, exercise):
 
 if __name__ == "__main__":
     # response = llama3chat("write a sentence in french using the word poubelle")
-    response = llama3gen("write a sentence in french using the word poubelle")
+    prompt = sys.argv[1]
+    response = llama3gen(prompt)
     print(response)
