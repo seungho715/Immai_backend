@@ -4,22 +4,15 @@ import json
 
 urlchat = "http://localhost:11434/api/chat"
 urlgen = "http://localhost:11434/api/generate"
-context_file = 'src\python\context.txt'
+context_file = 'src/python/context.txt'
+
+history = []
 
 # Use for NPC
-def llama3chat(prompt, role, context):
+def llama3chat(messages):
     data = {
         "model": "llama3.1",
-        "messages": [
-            {
-              "role": "system",
-              "content": "You are a " + role + context + "\nOnly respond in french."
-            },
-            {
-              "role": "user",
-              "content": prompt
-            }
-        ],
+        "messages": messages,
         "stream": False
     }
     
@@ -29,13 +22,13 @@ def llama3chat(prompt, role, context):
     
     response = requests.post(urlchat, headers=headers, json=data)
     
-    return(response.json()['message']['content'])
+    return(response.json())
 
 # Use for instructive exercises
 def llama3gen(prompt):
     data = {
         "model": "llama3.1",
-        "prompt": "write and only return a sentence in french using the word" + prompt,
+        "prompt": "Write and only return a sentence in french using the word" + prompt,
         "stream": False
     }
     
@@ -47,34 +40,31 @@ def llama3gen(prompt):
     
     return(response.json()['response'])
 
-# def init(role):
-#     data = {
-#         "model": "llama3.1",
-#         "messages": [
-#             {
-#               "role": "system",
-#               "content": "You are a " + role + ". Only respond in french."
-#             }
-#         ],
-#         "stream": False
-#     }
-    
-#     headers = {
-#         'Content-Type': 'application/json'
-#     }
-    
-#     response = requests.post(urlchat, headers=headers, json=data)
+def init(role, context):
+    system_prompt = "You are a " + role + ". " + context
 
-#     return(response.json())
+    history.append({"role": "system", "content": system_prompt})
+    history.append({"role": "user", "content": ""})
 
-def NPC_gen(text, role, context):
-    return llama3chat(text, role, context)
+    response = llama3chat(history)
+    
+    history.append(response['message'])
+
+    return response['message']['content']
+
+def NPC_gen(text):
+    history.append({"role": "user", "content": text})
+
+    response = llama3chat(history)
+    
+    history.append(response['message'])
+
+    return response['message']['content']
 
 def exercise_gen(word, exercise):
     return llama3gen(word)
 
 if __name__ == "__main__":
-    # response = llama3chat("write a sentence in french using the word poubelle")
     methodToUse = sys.argv[1]
 
     if methodToUse == "npc":
@@ -83,6 +73,7 @@ if __name__ == "__main__":
 
         with open(context_file, 'r') as file:
             context = file.read()
+
         response = NPC_gen(inputText, role, context)
         print(response)
 
