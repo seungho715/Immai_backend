@@ -1,7 +1,7 @@
 import argparse
 import random
 import sys
-from ollama import NPC_gen, exercise_gen 
+from ollama import NPC_gen, exercise_gen, init 
 
 exercises = ['FITB', 'MultipleChoice', 'Direction', 'Movement', 'Sound', 'Color', 'Smell', 'Touch', 'Feeling', 'Family']
 
@@ -10,7 +10,7 @@ parser.add_argument("--npc", help="generate NPC conversation", action="store_tru
 parser.add_argument("--exercise", help="generate exercise", action="store_true")
 args = parser.parse_args()
 
-context_file = 'src\python\context.txt'
+context_file = 'src/python/context.txt'
 
 if __name__ == "__main__":
     if args.exercise:
@@ -21,8 +21,6 @@ if __name__ == "__main__":
 
     elif args.npc:
         # NPC test
-        # print(init(input("NPC role: ")))
-
         with open(context_file, 'r') as file:
             context = file.read()
 
@@ -30,7 +28,9 @@ if __name__ == "__main__":
 
         print("~~~~Conversation begins~~~~")
 
+        print(init(role, context))
+
         while(1):
-            print("NPC: " + NPC_gen(input("You: "), role, context))
+            print("NPC: " + NPC_gen(input("You: ")))
     else:
         print("commands are --npc or --exercise")

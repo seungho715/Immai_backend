@@ -67,14 +67,19 @@ def exercise_gen(word, exercise):
 if __name__ == "__main__":
     methodToUse = sys.argv[1]
 
-    if methodToUse == "npc":
-        inputText = sys.argv[2]
-        role = sys.argv[3]
+    if methodToUse == "init":
+        role = sys.argv[2]
 
         with open(context_file, 'r') as file:
             context = file.read()
 
-        response = NPC_gen(inputText, role, context)
+        response = init(role, context)
+        print(response)
+
+    if methodToUse == "npc":
+        inputText = sys.argv[2]
+
+        response = NPC_gen(inputText)
         print(response)
 
     elif methodToUse == "exercise":
