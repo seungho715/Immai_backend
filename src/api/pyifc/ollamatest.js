@@ -2,9 +2,34 @@ const { spawn } = require('child_process');
 const { resolveMx } = require('dns');
 const { resolve } = require('path');
 
-function npcInteraction(inputText, role){
+function init(role) {
     return new Promise((resolve, reject)=>{
-            const pythonProcess = spawn('python', ['src/python/ollama.py', 'npc', inputText, role]);
+            const pythonProcess = spawn('python', ['src/python/ollama.py', 'init', role]);
+
+            let output = '';
+            pythonProcess.stdout.on('data', (data) => {
+                console.log(data.toString())
+                output+=data.toString();
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+                reject(data.toString());
+            });
+
+            pythonProcess.on('close', (code) => {
+                if (code===0) {
+                    resolve(output.toString());
+                } else {
+                    reject(`Python process exited with code ${code}`);
+                }
+            });
+
+        });
+}
+
+function npcInteraction(inputText){
+    return new Promise((resolve, reject)=>{
+            const pythonProcess = spawn('python', ['src/python/ollama.py', 'npc', inputText]);
 
             let output = '';
             pythonProcess.stdout.on('data', (data) => {
@@ -53,4 +78,4 @@ function exerciseGen(word, exercise){
 }
 
 
-module.exports = { npcInteraction, exerciseGen };
+module.exports = { init, npcInteraction, exerciseGen };
