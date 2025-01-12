@@ -1,6 +1,7 @@
 import argparse
 import random
 import sys
+import json
 from ollama import NPC_gen, exercise_gen, init 
 
 exercises = ['FITB', 'MultipleChoice', 'Direction', 'Movement', 'Sound', 'Color', 'Smell', 'Touch', 'Feeling', 'Family']
@@ -28,9 +29,13 @@ if __name__ == "__main__":
 
         print("~~~~Conversation begins~~~~")
 
-        print(init(role, context))
+        history = init(role, context)
+        output = json.loads(history)
+        print(output[-1]['content'])
 
         while(1):
-            print("NPC: " + NPC_gen(input("You: ")))
+            history = NPC_gen(input("You: "), history)
+            output = json.loads(history)
+            print("NPC: " + output[-1]['content'])
     else:
         print("commands are --npc or --exercise")
