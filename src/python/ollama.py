@@ -6,8 +6,6 @@ urlchat = "http://localhost:11434/api/chat"
 urlgen = "http://localhost:11434/api/generate"
 context_file = 'src/python/context.txt'
 
-history = []
-
 # Use for NPC
 def llama3chat(messages):
     data = {
@@ -41,6 +39,8 @@ def llama3gen(prompt):
     return(response.json()['response'])
 
 def init(role, context):
+    history = []
+
     system_prompt = "You are a " + role + ". " + context
 
     history.append({"role": "system", "content": system_prompt})
@@ -50,16 +50,18 @@ def init(role, context):
     
     history.append(response['message'])
 
-    return response['message']['content']
+    return json.dumps(history)
 
-def NPC_gen(text):
-    history.append({"role": "user", "content": text})
+def NPC_gen(text, history):
+    conversation = json.loads(history)
 
-    response = llama3chat(history)
+    conversation.append({"role": "user", "content": text})
+
+    response = llama3chat(conversation)
     
-    history.append(response['message'])
+    conversation.append(response['message'])
 
-    return response['message']['content']
+    return json.dumps(conversation)
 
 def exercise_gen(word, exercise):
     return llama3gen(word)
@@ -78,12 +80,14 @@ if __name__ == "__main__":
 
     if methodToUse == "npc":
         inputText = sys.argv[2]
+        history = sys.argv[3]
 
-        response = NPC_gen(inputText)
+        response = NPC_gen(inputText, history)
         print(response)
 
     elif methodToUse == "exercise":
         word = sys.argv[2]
         exercise = sys.argv[3]
+
         response = exercise_gen(word, exercise)
         print(response)
