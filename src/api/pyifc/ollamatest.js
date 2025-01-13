@@ -27,9 +27,9 @@ function init(role) {
         });
 }
 
-function npcInteraction(inputText){
+function npcInteraction(inputText, history){
     return new Promise((resolve, reject)=>{
-            const pythonProcess = spawn('python', ['src/python/ollama.py', 'npc', inputText]);
+            const pythonProcess = spawn('python', ['src/python/ollama.py', 'npc', inputText, history]);
 
             let output = '';
             pythonProcess.stdout.on('data', (data) => {
