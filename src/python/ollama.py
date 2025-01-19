@@ -1,6 +1,7 @@
 import requests
 import sys
 import json
+from translate import translate_word, translate_sentence
 
 urlchat = "http://localhost:11434/api/chat"
 urlgen = "http://localhost:11434/api/generate"
@@ -11,7 +12,23 @@ def llama3chat(messages):
     data = {
         "model": "llama3.1",
         "messages": messages,
-        "stream": False
+        "stream": False,
+        # Option 2
+        # "format": {
+        #     "type": "object",
+        #     "properties": {
+        #         "french": {
+        #             "type": "string"
+        #         },
+        #         "english": {
+        #             "type": "string"
+        #         }
+        #     },
+        #     "required": [
+        #         "french",
+        #         "english"
+        #     ]
+        # }
     }
     
     headers = {
@@ -26,7 +43,7 @@ def llama3chat(messages):
 def llama3gen(prompt):
     data = {
         "model": "llama3.1",
-        "prompt": "Write and only return a sentence in french using the word" + prompt,
+        "prompt": prompt,
         "stream": False
     }
     
@@ -49,8 +66,12 @@ def init(role, context):
     response = llama3chat(history)
     
     history.append(response['message'])
+    # Option 1
+    # translation = translate(response['message']['content'])
+    # history_translation = [history, translation]
 
     return json.dumps(history)
+    # return json.dumps(history_translation)
 
 def NPC_gen(text, history):
     conversation = json.loads(history)
@@ -60,11 +81,22 @@ def NPC_gen(text, history):
     response = llama3chat(conversation)
     
     conversation.append(response['message'])
+    # Option 1
+    # translation = translate(conversation[-1]['content'])
+    # history_translation = [conversation, translation]
+
+    # Option 2
+    # Change system prompt to have LLM output in both languages initially
+    # Then leave translate as way for backend to get definitions for specific words
 
     return json.dumps(conversation)
+    # return json.dumps(history_translation)
 
 def exercise_gen(word, exercise):
-    return llama3gen(word)
+    return llama3gen("Write and only return a sentence in french using the word" + word)
+
+def translate(text):
+    return translate_sentence(text)
 
 if __name__ == "__main__":
     methodToUse = sys.argv[1]
@@ -90,4 +122,10 @@ if __name__ == "__main__":
         exercise = sys.argv[3]
 
         response = exercise_gen(word, exercise)
+        print(response)
+
+    elif methodToUse == "translate":
+        text = sys.argv[2]
+
+        response = translate(text)
         print(response)

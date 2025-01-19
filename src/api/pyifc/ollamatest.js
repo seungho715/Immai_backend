@@ -77,5 +77,30 @@ function exerciseGen(word, exercise){
         });
 }
 
+function translate(text){
+    return new Promise((resolve, reject)=>{
+            const pythonProcess = spawn('python', ['src/python/ollama.py', 'translate', text]);
 
-module.exports = { init, npcInteraction, exerciseGen };
+            let output = '';
+            pythonProcess.stdout.on('data', (data) => {
+                console.log(data.toString())
+                output+=data.toString();
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+                reject(data.toString());
+            });
+
+            pythonProcess.on('close', (code) => {
+                if (code===0) {
+                    resolve(output.toString());
+                } else {
+                    reject(`Python process exited with code ${code}`);
+                }
+            });
+
+        });
+}
+
+
+module.exports = { init, npcInteraction, exerciseGen, translate };
