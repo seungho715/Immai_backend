@@ -51,9 +51,18 @@ def llama3gen(prompt):
         'Content-Type': 'application/json'
     }
     
-    response = requests.post(urlgen, headers=headers, json=data)
+    try:
+        response = requests.post(urlgen, headers=headers, json=data)
+        response.raise_for_status() # Raise an exception for HTTP errors
+        data = response.json()
+        generated_text = data.get('response', "No exercise generated. Please refine your input.")
+
+    except requests.exceptions.RequestException as e:
+        return {
+            "error": f"An error occurred: {e}"
+        }
     
-    return(response.json()['response'])
+    return generated_text
 
 def init(role, context):
     history = []
@@ -92,8 +101,47 @@ def NPC_gen(text, history):
     return json.dumps(conversation)
     # return json.dumps(history_translation)
 
-def exercise_gen(word, exercise):
-    return llama3gen("Write and only return a sentence in french using the word" + word)
+"""
+Generate language learning exercises using the ollama API with predefined exercises
+Args:
+    language (str): The language to learn (e.g. spanish, french)
+    difficulty (str): How difficult you wnat it to be (beginner, intermediate, advanced)
+    exercise_type (str): The type of exercise to generate ( eg FITB, word definition, etc.)
+Returns:
+    str: The generated language learning exercise with the correct answer
+"""
+def exercise_gen(language: str, difficulty: str, exercise_type: str):
+
+    exercise_prompts = {
+        "fill in the blank": f"Create a {difficulty}-level {language} exercise where the user must fill in the blanks in sentences. Provide the correct answers after the exercise.",
+        "match the meaning": f"Generate a {difficulty}-level {language} exercise where the user matches words to their meanings. Provide the correct answers after the exercise.",
+        "sentence reordering": f"Design a {difficulty}-level {language} exercise where the user must reorder jumbled words to form correct sentences. Provide the correct answers after the exercise.",
+        "translation": f"Create a {difficulty}-level {language} exercise where the user translates sentences into English. Provide the correct answers after the exercise.",
+        "multiple choice": f"Generate a {difficulty}-level {language} quiz with five multiple-choice questions to test vocabulary. Provide the correct answers after the exercise."
+    }
+
+    
+    # Check if the exercise type is supported
+    if exercise_type not in exercise_prompts:
+        return {
+            "error": f"Unsupported exercise type '{exercise_type}'. Supported types are: {', '.join(exercise_prompts.keys())}."
+        }
+    # Get the prompt for the chosen exercise type
+    prompt = exercise_prompts[exercise_type]
+    generated_text = llama3gen(prompt)
+    
+    if "Correct Answers:" in generated_text:
+        exercise_part, answers_part = generated_text.split("Correct Answers:", 1)
+    else:
+        exercise_part, answers_part = generated_text, ""
+    
+    return {
+        "language": language,
+        "difficulty": difficulty,
+        "exercise_type": exercise_type,
+        "exercise": exercise_part.strip(),
+        "answers": answers_part.strip()
+    }
 
 def translate(text):
     return translate_sentence(text)
@@ -118,10 +166,11 @@ if __name__ == "__main__":
         print(response)
 
     elif methodToUse == "exercise":
-        word = sys.argv[2]
-        exercise = sys.argv[3]
+        language = sys.argv[2]
+        difficulty = sys.argv[3]
+        exercise_type = sys.argv[4]
 
-        response = exercise_gen(word, exercise)
+        response = exercise_gen(language=language, difficulty=difficulty, exercise_type=exercise_type)
         print(response)
 
     elif methodToUse == "translate":

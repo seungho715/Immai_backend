@@ -52,9 +52,9 @@ function npcInteraction(inputText, history){
         });
 }
 
-function exerciseGen(word, exercise){
+function exerciseGen(language, difficulty, exerciseType){
     return new Promise((resolve, reject)=>{
-            const pythonProcess = spawn('python', ['src/python/ollama.py', 'exercise', word, exercise]);
+            const pythonProcess = spawn('python', ['src/python/ollama.py', 'exercise', language, difficulty, exerciseType]);
 
             let output = '';
             pythonProcess.stdout.on('data', (data) => {

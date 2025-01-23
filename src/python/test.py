@@ -17,10 +17,16 @@ context_file = 'src/python/context.txt'
 
 if __name__ == "__main__":
     if args.exercise:
+        predefined_exercises = [
+        "fill in the blank",
+        "match the meaning",
+        "sentence reordering",
+        "translation",
+        "multiple choice"
+    ]
         # gen random index of input
-        prompt = input()
-        exercise = exercises[random.randint(0, 8)]
-        print(exercise_gen(prompt, exercise))
+        exercise_type = random.choice(predefined_exercises)
+        print(exercise_gen(language="French", difficulty="beginner", exercise_type=exercise_type))
 
     elif args.npc:
         # NPC test

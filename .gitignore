@@ -1,3 +1,5 @@
 node_modules/
 **/node_modules
+immaipyrequirements/
+src/python/__pycache__
 dist
