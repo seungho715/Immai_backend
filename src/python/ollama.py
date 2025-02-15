@@ -3,8 +3,8 @@ import sys
 import json
 from translate import translate_word, translate_sentence
 
-urlchat = "http://localhost:11434/api/chat"
-urlgen = "http://localhost:11434/api/generate"
+urlchat = "http://immai.experiments.moe:11434/api/chat"
+urlgen = "http://immai.experiments.moe:11434/api/generate"
 context_file = 'src/python/context.txt'
 
 # Use for NPC
@@ -129,9 +129,11 @@ def exercise_gen(language: str, difficulty: str, exercise_type: str):
     # Get the prompt for the chosen exercise type
     prompt = exercise_prompts[exercise_type]
     generated_text = llama3gen(prompt)
-    
+    print(generated_text)
     if "Correct Answers:" in generated_text:
         exercise_part, answers_part = generated_text.split("Correct Answers:", 1)
+    elif "Answers:" in generated_text:
+        exercise_part, answers_part = generated_text.split("Answers:",1)
     else:
         exercise_part, answers_part = generated_text, ""
     
